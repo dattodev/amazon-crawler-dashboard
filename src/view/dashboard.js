@@ -1104,7 +1104,7 @@ function lookupFbaFee(tier, weightLb) {
 function computeFbaFeeDisplay(p) {
 	try {
 		// Determine fulfillment type via soldBy
-		const soldBy = (p.soldBy || '').toLowerCase();
+		const soldBy = (p.shipFrom || '').toLowerCase();
 		const isFba = soldBy.includes('amazon');
 
 		// Referral fee
@@ -1312,7 +1312,7 @@ async function renderGrid(products) {
 
 		// Determine if it's FBA or FBM based on seller info
 		// In real data we might not have this info, so we'll use a placeholder
-		const soldBy = p.soldBy || '';
+		const soldBy = p.shipFrom || '';
 		const fulfillmentType = soldBy.toLowerCase().includes('amazon')
 			? 'FBA'
 			: 'FBM';
@@ -1435,8 +1435,8 @@ async function renderGrid(products) {
             </div>
             ${
 				computeFbaFeeDisplay(p) &&
-				((p.shipping && p.shipFrom.toLowerCase().includes('amazon')) ||
-					(p.soldBy && p.soldBy.toLowerCase().includes('amazon')))
+				p.shipFrom &&
+				p.shipFrom.toLowerCase().includes('amazon')
 					? `<div class="fba-fee-row">FBA Fee: <span class="fee-price">${computeFbaFeeDisplay(
 							p
 					  )}</span></div>`
@@ -1444,10 +1444,8 @@ async function renderGrid(products) {
 			}
             ${
 				computeReferralFeeDisplay(p) &&
-				p.shipping &&
-				!p.shipFrom.toLowerCase().includes('amazon') &&
-				p.soldBy &&
-				!p.soldBy.toLowerCase().includes('amazon')
+				p.shipFrom &&
+				!p.shipFrom.toLowerCase().includes('amazon')
 					? `<div class="referral-fee-row">Referral Fee: <span class="fee-price">${computeReferralFeeDisplay(
 							p
 					  )}</span></div>`
@@ -2136,7 +2134,7 @@ function applyAdvancedFilters(products) {
 
 		// Fulfillment filter
 		if (currentFilters.fulfillment !== 'all') {
-			const soldBy = product.shipFrom || product.soldBy;
+			const soldBy = product.shipFrom;
 			if (!soldBy) return false;
 
 			if (currentFilters.fulfillment === 'FBA') {
