@@ -1444,10 +1444,10 @@ async function renderGrid(products) {
 			}
             ${
 				computeReferralFeeDisplay(p) &&
-				!p.shipping &&
-				p.shipFrom.toLowerCase().includes('amazon') &&
-				!p.soldBy &&
-				p.soldBy.toLowerCase().includes('amazon')
+				p.shipping &&
+				!p.shipFrom.toLowerCase().includes('amazon') &&
+				p.soldBy &&
+				!p.soldBy.toLowerCase().includes('amazon')
 					? `<div class="referral-fee-row">Referral Fee: <span class="fee-price">${computeReferralFeeDisplay(
 							p
 					  )}</span></div>`
