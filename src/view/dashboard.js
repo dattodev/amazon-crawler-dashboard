@@ -2136,7 +2136,7 @@ function applyAdvancedFilters(products) {
 
 		// Fulfillment filter
 		if (currentFilters.fulfillment !== 'all') {
-			const soldBy = product.soldBy;
+			const soldBy = product.shipFrom || product.soldBy;
 			if (!soldBy) return false;
 
 			if (currentFilters.fulfillment === 'FBA') {
