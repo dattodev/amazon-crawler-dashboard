@@ -37,23 +37,53 @@ async function fetchReferralFeeRules() {
 	}
 }
 
+// Helper function to normalize category names for better matching
+function normalizeCategory(cat) {
+	if (!cat) return '';
+	return cat
+		.toLowerCase()
+		.replace(/&/g, 'and') // Replace & with and
+		.replace(/[^\w\s]/g, '') // Remove special characters except spaces
+		.replace(/\s+/g, ' ') // Replace multiple spaces with single space
+		.trim(); // Remove leading/trailing spaces
+}
+
+// Test function to demonstrate category normalization
+function testCategoryNormalization() {
+	const testCases = [
+		'Home & Kitchen',
+		'Home and Kitchen',
+		'Home&Kitchen',
+		'Home   &   Kitchen',
+		'Home & Kitchen!',
+		'Home & Kitchen (Special)',
+		'Home & Kitchen - Premium',
+		'Home & Kitchen / Accessories',
+	];
+
+	console.log('=== Category Normalization Test ===');
+	testCases.forEach((testCase) => {
+		console.log(`"${testCase}" -> "${normalizeCategory(testCase)}"`);
+	});
+}
+
 // Calculate referral fee based on category and price
-function calculateReferralFee(category, price) {
+function calculateReferralFee(category, price, asin) {
 	if (!Array.isArray(cacheReferralFeeRules) || !category || !price) {
 		return null;
 	}
 
 	// Find matching rules for this category
 	const matchingRules = cacheReferralFeeRules.filter((rule) => {
-		// Check category match (case insensitive)
-		const ruleCategory = rule.category?.toLowerCase() || '';
-		const productCategory = category?.toLowerCase() || '';
+		// Normalize categories for better matching
+		const ruleCategory = normalizeCategory(rule.category);
+		const productCategory = normalizeCategory(category);
 
-		// Check if rule category is contained in product category or vice versa
+		// Check category match with normalized strings
 		const categoryMatch =
+			ruleCategory === productCategory ||
 			ruleCategory.includes(productCategory) ||
-			productCategory.includes(ruleCategory) ||
-			ruleCategory === productCategory;
+			productCategory.includes(ruleCategory);
 
 		if (!categoryMatch) return false;
 
@@ -65,12 +95,6 @@ function calculateReferralFee(category, price) {
 				: Infinity;
 
 		const priceMatch = price >= priceMin && price <= priceMax;
-
-		console.log(
-			`Rule check - Category: "${ruleCategory}" vs "${productCategory}", Price: ${price} in [${priceMin}, ${priceMax}], Match: ${
-				categoryMatch && priceMatch
-			}`
-		);
 
 		return priceMatch;
 	});
@@ -88,7 +112,7 @@ function calculateReferralFee(category, price) {
 
 	// Calculate fee based on Apply_To type
 	let totalFee = 0;
-	console.log(matchingRules);
+	// console.log(matchingRules);
 
 	for (const rule of matchingRules) {
 		const applyTo = rule.applyTo?.toLowerCase() || 'total';
@@ -118,11 +142,11 @@ function calculateReferralFee(category, price) {
 	const minFee = Math.max(
 		...matchingRules.map((rule) => rule.minFeeUSD || 0)
 	);
-	console.log(`Total fee before min: ${totalFee}, Min fee: ${minFee}`);
+	// console.log(`Total fee before min: ${totalFee}, Min fee: ${minFee}`);
 
 	if (minFee > 0) {
 		totalFee = Math.max(totalFee, minFee);
-		console.log(`Final fee after min: ${totalFee}`);
+		// console.log(`Final fee after min: ${totalFee}`);
 	}
 
 	return totalFee > 0 ? totalFee : null;
@@ -1014,7 +1038,7 @@ function classifyTier(weightLb, dim) {
 		shippingWeight = weightLb;
 	}
 
-	console.log(shippingWeight);
+	// console.log(shippingWeight);
 
 	// console.log(stats);
 	// Try to find first rule satisfied by all provided constraints
@@ -1161,26 +1185,11 @@ function computeReferralFeeDisplay(p) {
 		const category = p.category || '';
 		const price = p.price || 0;
 
-		// console.log('Referral Fee Debug - Category:', category);
-		// console.log('Referral Fee Debug - Price:', price);
-		// console.log(
-		// 	'Referral Fee Debug - Rules count:',
-		// 	cacheReferralFeeRules.length
-		// );
-		// console.log('Referral Fee Debug - Rules array:', cacheReferralFeeRules);
-		// console.log(
-		// 	'Referral Fee Debug - Is array?',
-		// 	Array.isArray(cacheReferralFeeRules)
-		// );
-
 		// Check if rules are loaded
 		if (
 			!Array.isArray(cacheReferralFeeRules) ||
 			cacheReferralFeeRules.length === 0
 		) {
-			console.log(
-				'Referral Fee Debug - Rules not loaded yet, returning null'
-			);
 			return null;
 		}
 
@@ -1188,7 +1197,8 @@ function computeReferralFeeDisplay(p) {
 			return null;
 		}
 
-		const fee = calculateReferralFee(category, price);
+		const fee = calculateReferralFee(category, price, p.asin);
+
 		if (fee != null) {
 			return `$${fee.toFixed(2)}`;
 		}
@@ -1198,6 +1208,7 @@ function computeReferralFeeDisplay(p) {
 		return null;
 	}
 }
+
 function showGrid() {
 	const regularList = document.getElementById('productList');
 	const regularTable = document.getElementById('productTable');
@@ -1299,16 +1310,7 @@ async function renderGrid(products) {
 		productLink.style.width = '100%';
 		productLink.style.height = '100%';
 
-		// Tạo nút xóa
-		const deleteBtn = document.createElement('button');
-		deleteBtn.className = 'delete-product-btn';
-		deleteBtn.innerHTML = '&times;'; // X symbol
-		deleteBtn.title = 'Delete this product';
-		deleteBtn.onclick = function (e) {
-			e.preventDefault();
-			e.stopPropagation();
-			showDeleteModal(p._id, p.productName);
-		};
+		// Delete button removed
 
 		// Determine if it's FBA or FBM based on seller info
 		// In real data we might not have this info, so we'll use a placeholder
@@ -1443,9 +1445,7 @@ async function renderGrid(products) {
 					: ''
 			}
             ${
-				computeReferralFeeDisplay(p) &&
-				p.shipFrom &&
-				!p.shipFrom.toLowerCase().includes('amazon')
+				computeReferralFeeDisplay(p)
 					? `<div class="referral-fee-row">Referral Fee: <span class="fee-price">${computeReferralFeeDisplay(
 							p
 					  )}</span></div>`
@@ -1455,7 +1455,6 @@ async function renderGrid(products) {
 
 		// Thêm các phần tử vào DOM
 		card.appendChild(productLink);
-		card.appendChild(deleteBtn);
 		list.appendChild(card);
 	});
 }
@@ -2556,6 +2555,99 @@ async function loadFilterTemplates() {
 	renderTemplateList(filterTemplates);
 }
 
+// Clear active template and reset all settings
+function clearActiveTemplate() {
+	// Clear active template
+	activeTemplate = null;
+
+	// Reset advanced filters to default
+	currentFilters = {
+		bought: 'all',
+		newArrival: 'all',
+		fulfillment: 'all',
+		fbaFee: 'all',
+		price: 'all',
+		referralFee: 'all',
+		rating: 'all',
+	};
+
+	// Reset sidebar selections
+	window.selectedSellers = [];
+	window.selectedCategories = [];
+	window.selectedSources = [];
+
+	// Reset sort to default
+	currentSort = 'date_desc';
+
+	// Reset display mode to default
+	displayMode = 'grid';
+
+	// Reset image only columns
+	imageOnlyCols = 0;
+
+	// Reset all filter radio buttons
+	document.querySelectorAll('input[type="radio"]').forEach((radio) => {
+		if (radio.value === 'all') radio.checked = true;
+	});
+
+	// Reset sidebar checkboxes
+	document.querySelectorAll('input[name="seller"]').forEach((input) => {
+		if (input.value === 'all') input.checked = true;
+		else input.checked = false;
+	});
+
+	document.querySelectorAll('input[name="category"]').forEach((input) => {
+		if (input.value === 'all') input.checked = true;
+		else input.checked = false;
+	});
+
+	document.querySelectorAll('input[name="source"]').forEach((input) => {
+		if (input.value === 'all') input.checked = true;
+		else input.checked = false;
+	});
+
+	// Reset sort display
+	const sortText = document.getElementById('sortText');
+	if (sortText) {
+		sortText.textContent = 'Date: Newest to Oldest';
+	}
+
+	// Reset view toggle buttons
+	const gridBtn = document.getElementById('gridBtn');
+	const tableBtn = document.getElementById('tableBtn');
+	if (gridBtn && tableBtn) {
+		gridBtn.classList.add('active');
+		tableBtn.classList.remove('active');
+	}
+
+	// Reset image only text
+	const imageOnlyText = document.getElementById('imageOnlyText');
+	if (imageOnlyText) {
+		imageOnlyText.textContent = 'Image only';
+	}
+
+	// Reset quick filter text
+	const quickFilterText = document.getElementById('quickFilterText');
+	if (quickFilterText) {
+		quickFilterText.textContent = 'Save Template';
+	}
+
+	// Update applied filters display
+	updateAppliedFilters();
+
+	// Re-render template list to remove active state
+	renderTemplateList(filterTemplates);
+
+	// Close quick filter dropdown
+	const dropdown = document.getElementById('quickFilterDropdown');
+	if (dropdown) dropdown.classList.remove('show');
+
+	// Apply all changes to products
+	filterProducts();
+
+	showSuccess('Template cleared successfully');
+}
+
 // Sort Functions
 function selectSort(value) {
 	const sortText = document.getElementById('sortText');
@@ -3302,6 +3394,11 @@ window.saveCurrentFiltersAsTemplate = saveCurrentFiltersAsTemplate;
 window.applyTemplate = applyTemplate;
 window.deleteTemplate = deleteTemplate;
 window.loadFilterTemplates = loadFilterTemplates;
+window.clearActiveTemplate = clearActiveTemplate;
+
+// Debug Functions
+window.testCategoryNormalization = testCategoryNormalization;
+window.normalizeCategory = normalizeCategory;
 
 async function importFeeRulesFromExcel(input) {
 	try {
