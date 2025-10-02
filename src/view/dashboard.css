@@ -1036,10 +1036,7 @@ input[type="checkbox"]:checked+span {
     max-height: 220px;
 }
 
-/* Ẩn delete button khi ở chế độ image only */
-.product-card-v2.image-only .delete-product-btn {
-    display: none !important;
-}
+/* Delete button removed - no longer needed */
 
 @media (min-width: 1600px) {
     .product-list {
@@ -1657,36 +1654,36 @@ table td {
     background-color: #e0e0e0;
 }
 
-/* Delete button styling */
-.delete-product-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.9);
-    border: 1px solid var(--border-color);
-    color: var(--danger);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Delete button styling removed */
+
+/* Template actions header */
+.template-actions-header {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.clear-template-btn {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    color: #6c757d;
+    font-size: 0.9rem;
     cursor: pointer;
-    opacity: 0;
-    transition: all 0.2s;
-    z-index: 10;
-    font-size: 18px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
 }
 
-.product-card-v2:hover .delete-product-btn {
-    opacity: 1;
+.clear-template-btn:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    color: #495057;
 }
 
-.delete-product-btn:hover {
-    background-color: var(--danger);
-    color: white;
-    transform: scale(1.1);
+.clear-template-btn:active {
+    background-color: #dee2e6;
+    transform: translateY(1px);
 }
 
 /* Confirmation modal */
